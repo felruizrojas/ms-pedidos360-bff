@@ -1,0 +1,3 @@
+spring:
+  application:
+    name: ms-pedidos360-bff
