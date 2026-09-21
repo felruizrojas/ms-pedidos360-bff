@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Project ###
+.DS_Store
+.env
+.github/modernize/
