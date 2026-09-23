@@ -118,6 +118,27 @@ class CatalogEndpointsTest extends AbstractBffTest {
     }
 
     @Test
+    void nombreConNumerosRechazadoPorElBffAntesDeLlamarAlCatalogo() throws Exception {
+        // Mismas reglas que catalog.ProductoRequest: el BFF debe fallar rápido, en español,
+        // sin ni siquiera invocar al microservicio downstream.
+        mvc.perform(auth(post(URL)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nombre\":\"Teclado123\",\"precio\":100,\"stock\":1}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detalles.nombre")
+                        .value("El nombre solo admite letras y espacios (sin números ni símbolos)."));
+        assertThat(CATALOG.last()).isNull();
+    }
+
+    @Test
+    void precioSobreElTopeRechazadoPorElBffAntesDeLlamarAlCatalogo() throws Exception {
+        mvc.perform(auth(post(URL)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nombre\":\"Teclado\",\"precio\":10000000000000000000000000000,\"stock\":1}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detalles.precio").value("El precio no puede superar $999.999.999."));
+        assertThat(CATALOG.last()).isNull();
+    }
+
+    @Test
     void validacionDelCatalogoSeReenvia() throws Exception {
         CATALOG.respond(400, "{\"status\":400,\"mensaje\":\"Error de validación\","
                 + "\"detalles\":{\"nombre\":\"ya existe\"}}");
