@@ -25,6 +25,9 @@ pedidos360:
       base-url: ${CATALOG_BASE_URL:http://localhost:8081}
   security:
     enforce-roles: ${ENFORCE_ROLES:false}
+  gateway:
+    # Secreto que el API Gateway agrega en X-Origin-Verify. Vacío = no se exige (local).
+    secret: ${GATEWAY_SECRET:}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
 
