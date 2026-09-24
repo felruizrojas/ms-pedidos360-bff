@@ -1,0 +1,4 @@
+# Solo local: compila la imagen desde el código en vez de bajarla de GHCR.
+services:
+  bff:
+    build: .

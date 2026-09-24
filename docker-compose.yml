@@ -1,0 +1,14 @@
+# BFF. En la EC2 se usa este archivo tal cual (imagen de GHCR);
+# en local se suma docker-compose.override.yml, que compila la imagen desde el código.
+# Variables: copiar .env.example a .env (en la EC2 el .env lo crea CloudFormation).
+services:
+  bff:
+    image: ${BFF_IMAGE:-ghcr.io/felruizrojas/ms-pedidos360-bff:latest}
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      CATALOG_BASE_URL: ${CATALOG_BASE_URL:?falta CATALOG_BASE_URL en .env}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      ENFORCE_ROLES: ${ENFORCE_ROLES:-false}
+    mem_limit: 768m
