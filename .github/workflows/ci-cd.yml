@@ -77,6 +77,11 @@ jobs:
           script: |
             set -e
             cd ${{ env.APP_DIR }}
+            if [ ! -f .env ]; then
+              echo "ERROR: no existe ${{ env.APP_DIR }}/.env en esta EC2 ($(hostname))."
+              echo "Revisa que la variable EC2_HOST de este repo tenga la IP correcta (Outputs del stack de CloudFormation)."
+              exit 1
+            fi
             docker compose pull
             docker compose up -d --remove-orphans
             docker image prune -f
