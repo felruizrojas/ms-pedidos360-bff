@@ -34,5 +34,12 @@ build/
 
 ### Project ###
 .DS_Store
-.env
 .github/modernize/
+*.log
+logs/
+
+### Secretos ###
+.env
+.env.*
+*.pem
+*.key
