@@ -3,6 +3,7 @@ package cl.duoc.pedidos360.bff;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -185,5 +186,39 @@ class CatalogEndpointsTest extends AbstractBffTest {
     void respuestaIlegibleDelCatalogoDa502() throws Exception {
         CATALOG.respond(200, "esto no es json");
         mvc.perform(auth(get(URL))).andExpect(status().isBadGateway());
+    }
+
+    @Test
+    void putValidoDa200YReenviaSoloPrecioYStock() throws Exception {
+        CATALOG.respond(200, "{\"id\":7,\"nombre\":\"Teclado\",\"descripcion\":\"Mecánico\",\"precio\":39990,\"stock\":20}");
+        mvc.perform(auth(put(URL + "/7")).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"precio\":39990,\"stock\":20}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(7))
+                .andExpect(jsonPath("$.precio").value(39990))
+                .andExpect(jsonPath("$.stock").value(20));
+        assertThat(CATALOG.last().method()).isEqualTo("PUT");
+        assertThat(CATALOG.last().path()).isEqualTo(URL + "/7");
+        assertThat(CATALOG.last().body()).contains("\"precio\":39990").contains("\"stock\":20")
+                .doesNotContain("nombre");
+    }
+
+    @Test
+    void putInvalidoDa400ConDetallesSinLlamarAlCatalogo() throws Exception {
+        mvc.perform(auth(put(URL + "/7")).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"precio\":0,\"stock\":-1}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detalles.precio").value("El precio debe ser un monto entero mayor que 0."))
+                .andExpect(jsonPath("$.detalles.stock").value("El stock no puede ser negativo."));
+        assertThat(CATALOG.last()).isNull();
+    }
+
+    @Test
+    void putInexistenteEnCatalogoDa404() throws Exception {
+        CATALOG.respond(404, "{\"status\":404,\"mensaje\":\"interno\"}");
+        mvc.perform(auth(put(URL + "/99")).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"precio\":100,\"stock\":1}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.mensaje").value("Producto no encontrado con id 99"));
     }
 }

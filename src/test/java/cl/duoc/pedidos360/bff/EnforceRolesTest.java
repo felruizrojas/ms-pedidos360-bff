@@ -2,6 +2,7 @@ package cl.duoc.pedidos360.bff;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -64,5 +65,21 @@ class EnforceRolesTest extends AbstractBffTest {
     @Test
     void rolSinScopeDa403() throws Exception {
         postAs(TestJwt.valid().scope(null).roles("Admin")).andExpect(status().isForbidden());
+    }
+
+    private org.springframework.test.web.servlet.ResultActions putAs(TestJwt jwt) throws Exception {
+        return mvc.perform(put(URL + "/1").header(HttpHeaders.AUTHORIZATION, jwt.bearer())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"precio\":900,\"stock\":3}"));
+    }
+
+    @Test
+    void putConRolClienteDa403() throws Exception {
+        putAs(TestJwt.valid().roles("Cliente")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void putConOperadorDa200() throws Exception {
+        CATALOG.respond(200, "{\"id\":1,\"nombre\":\"Mouse\",\"precio\":900,\"stock\":3}");
+        putAs(TestJwt.valid().roles("Operador")).andExpect(status().isOk());
     }
 }

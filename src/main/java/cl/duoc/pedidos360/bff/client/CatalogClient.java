@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import cl.duoc.pedidos360.bff.dto.ActualizarProductoRequest;
 import cl.duoc.pedidos360.bff.dto.CrearProductoRequest;
 import cl.duoc.pedidos360.bff.dto.ProductoDto;
 import cl.duoc.pedidos360.bff.exception.ProductoNoEncontradoException;
@@ -44,6 +45,16 @@ public class CatalogClient {
         return restClient.post().uri(PRODUCTS)
                 .body(request)
                 .retrieve()
+                .body(ProductoDto.class);
+    }
+
+    public ProductoDto actualizar(Long id, ActualizarProductoRequest request) {
+        return restClient.put().uri(PRODUCTS + "/{id}", id)
+                .body(request)
+                .retrieve()
+                .onStatus(status -> status.value() == HttpStatus.NOT_FOUND.value(), (req, res) -> {
+                    throw new ProductoNoEncontradoException(id);
+                })
                 .body(ProductoDto.class);
     }
 }

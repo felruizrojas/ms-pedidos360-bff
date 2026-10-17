@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import cl.duoc.pedidos360.bff.client.CatalogClient;
+import cl.duoc.pedidos360.bff.dto.ActualizarProductoRequest;
 import cl.duoc.pedidos360.bff.dto.CrearProductoRequest;
 import cl.duoc.pedidos360.bff.dto.ProductoDto;
 import lombok.RequiredArgsConstructor;
@@ -26,5 +27,9 @@ public class CatalogService {
 
     public ProductoDto crear(CrearProductoRequest request) {
         return catalogClient.crear(request);
+    }
+
+    public ProductoDto actualizar(Long id, ActualizarProductoRequest request) {
+        return catalogClient.actualizar(id, request);
     }
 }
