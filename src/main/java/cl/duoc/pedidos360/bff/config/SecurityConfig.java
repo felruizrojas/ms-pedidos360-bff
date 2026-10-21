@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authorization.AuthorityAuthorizationManager;
+import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.authorization.AuthorizationManagers;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -19,6 +20,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -32,6 +34,9 @@ import lombok.RequiredArgsConstructor;
 public class SecurityConfig {
 
     private static final String SCOPE = "SCOPE_access_as_user";
+    private static final String ADMIN = "ROLE_Admin";
+    private static final String OPERADOR = "ROLE_Operador";
+    private static final String CLIENTE = "ROLE_Cliente";
 
     private final SecurityErrorHandlers errorHandlers;
 
@@ -54,13 +59,14 @@ public class SecurityConfig {
                             "/v3/api-docs/**",
                             "/actuator/health").permitAll();
                     if (enforceRoles) {
+                        // Catálogo: escribir es de Admin/Operador.
                         for (HttpMethod method : List.of(HttpMethod.POST, HttpMethod.PUT, HttpMethod.DELETE)) {
-                            auth.requestMatchers(method, "/api/**").access(
-                                    AuthorizationManagers.allOf(
-                                            AuthorityAuthorizationManager.hasAuthority(SCOPE),
-                                            AuthorityAuthorizationManager.hasAnyAuthority("ROLE_Admin",
-                                                    "ROLE_Operador")));
+                            auth.requestMatchers(method, "/api/catalog/**").access(scopeY(ADMIN, OPERADOR));
                         }
+                        // Pedidos: borrar es solo de Admin; el resto, cualquier rol de la app. La autorización
+                        // fina (dueño del pedido, qué transición puede hacer cada rol) la hace orders.
+                        auth.requestMatchers(HttpMethod.DELETE, "/api/orders/**").access(scopeY(ADMIN));
+                        auth.requestMatchers("/api/orders/**").access(scopeY(ADMIN, OPERADOR, CLIENTE));
                     }
                     auth.requestMatchers("/api/**").hasAuthority(SCOPE)
                             .anyRequest().authenticated();
@@ -73,6 +79,13 @@ public class SecurityConfig {
                         .accessDeniedHandler(errorHandlers.accessDeniedHandler())
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
         return http.build();
+    }
+
+    /** Exige el scope de la API y al menos uno de los roles. */
+    private static AuthorizationManager<RequestAuthorizationContext> scopeY(String... roles) {
+        return AuthorizationManagers.allOf(
+                AuthorityAuthorizationManager.hasAuthority(SCOPE),
+                AuthorityAuthorizationManager.hasAnyAuthority(roles));
     }
 
     /** scope -> SCOPE_x (por defecto) y claim "roles" (App roles de Entra) -> ROLE_x. */
@@ -99,7 +112,7 @@ public class SecurityConfig {
             CorsConfiguration configuration = new CorsConfiguration();
             configuration.setAllowedOrigins(origins);
             configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-            configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+            configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", RequestIdFilter.HEADER));
             configuration.setExposedHeaders(List.of(RequestIdFilter.HEADER));
             source.registerCorsConfiguration("/**", configuration);
         }

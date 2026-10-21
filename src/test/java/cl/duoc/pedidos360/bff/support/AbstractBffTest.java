@@ -17,9 +17,11 @@ import org.springframework.test.context.DynamicPropertySource;
 public abstract class AbstractBffTest {
 
     protected static final FakeCatalogServer CATALOG = new FakeCatalogServer();
+    protected static final FakeOrdersServer ORDERS = new FakeOrdersServer();
 
     @DynamicPropertySource
-    static void catalogUrl(DynamicPropertyRegistry registry) {
+    static void downstreamUrls(DynamicPropertyRegistry registry) {
         registry.add("pedidos360.services.catalog.base-url", CATALOG::baseUrl);
+        registry.add("pedidos360.services.orders.base-url", ORDERS::baseUrl);
     }
 }

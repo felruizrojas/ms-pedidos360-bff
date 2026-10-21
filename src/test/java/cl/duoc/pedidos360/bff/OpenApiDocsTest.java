@@ -24,6 +24,24 @@ class OpenApiDocsTest extends AbstractBffTest {
     }
 
     @Test
+    void endpointsDePedidosDocumentadosConBearerAuthYErrores() throws Exception {
+        mvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
+                .andExpect(jsonPath("$.security[0].bearerAuth").exists())
+                .andExpect(jsonPath("$.paths['/api/orders'].post.responses['201']").exists())
+                .andExpect(jsonPath("$.paths['/api/orders'].get.responses['200'].content['*/*'].schema").exists())
+                .andExpect(jsonPath("$.paths['/api/orders/{id}'].delete.responses['204']").exists())
+                .andExpect(jsonPath("$.paths['/api/orders/{id}/status'].put.responses['409']").exists())
+                .andExpect(jsonPath("$.paths['/api/orders/{id}/history'].get.responses['404']").exists())
+                .andExpect(jsonPath("$.paths['/api/orders/{id}'].put.responses['503']").exists())
+                .andExpect(jsonPath("$.paths['/api/orders'].get.responses['502']").exists())
+                .andExpect(jsonPath("$.paths['/api/orders'].post.responses['400']").exists())
+                .andExpect(jsonPath("$.paths['/api/orders'].post.responses['401']").exists())
+                .andExpect(jsonPath("$.paths['/api/orders'].post.responses['403']").exists());
+    }
+
+    @Test
     void swaggerUiSinTokenResponde() throws Exception {
         int statusCode = mvc.perform(get("/swagger-ui/index.html"))
                 .andReturn().getResponse().getStatus();

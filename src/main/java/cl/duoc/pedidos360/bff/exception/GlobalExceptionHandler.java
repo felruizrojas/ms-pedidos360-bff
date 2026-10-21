@@ -66,6 +66,24 @@ public class GlobalExceptionHandler {
                 ErrorBody.of(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI()));
     }
 
+    @ExceptionHandler(NoEncontradoDownstreamException.class)
+    public ResponseEntity<Map<String, Object>> handleNotFoundDownstream(NoEncontradoDownstreamException ex,
+            HttpServletRequest request) {
+        return build(HttpStatus.NOT_FOUND,
+                ErrorBody.of(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI()));
+    }
+
+    /** 409 del microservicio: mensaje y detalles tal cual (sin "detalles" si no vinieron). */
+    @ExceptionHandler(ConflictoDownstreamException.class)
+    public ResponseEntity<Map<String, Object>> handleConflicto(ConflictoDownstreamException ex,
+            HttpServletRequest request) {
+        log.warn("Conflicto rechazado por microservicio: {} {}", ex.getMessage(), ex.getDetalles());
+        Map<String, Object> body = ex.getDetalles() == null
+                ? ErrorBody.of(HttpStatus.CONFLICT, ex.getMessage(), request.getRequestURI())
+                : ErrorBody.of(HttpStatus.CONFLICT, ex.getMessage(), ex.getDetalles(), request.getRequestURI());
+        return build(HttpStatus.CONFLICT, body);
+    }
+
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNoResource(NoResourceFoundException ex,
             HttpServletRequest request) {

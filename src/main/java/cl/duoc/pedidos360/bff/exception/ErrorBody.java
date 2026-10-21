@@ -22,7 +22,7 @@ public final class ErrorBody {
         return body;
     }
 
-    public static Map<String, Object> of(HttpStatus status, String mensaje, Map<String, String> detalles, String path) {
+    public static Map<String, Object> of(HttpStatus status, String mensaje, Map<String, ?> detalles, String path) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", Instant.now().toString());
         body.put("status", status.value());

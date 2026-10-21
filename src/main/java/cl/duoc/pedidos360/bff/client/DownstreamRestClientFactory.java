@@ -5,6 +5,7 @@ import java.net.http.HttpClient;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.MDC;
 import org.springframework.http.HttpRequest;
@@ -20,6 +21,8 @@ import org.springframework.web.client.RestClient;
 
 import cl.duoc.pedidos360.bff.config.DownstreamProperties;
 import cl.duoc.pedidos360.bff.exception.AccesoRechazadoDownstreamException;
+import cl.duoc.pedidos360.bff.exception.ConflictoDownstreamException;
+import cl.duoc.pedidos360.bff.exception.NoEncontradoDownstreamException;
 import cl.duoc.pedidos360.bff.exception.ServicioNoDisponibleException;
 import cl.duoc.pedidos360.bff.exception.ValidacionDownstreamException;
 import cl.duoc.pedidos360.bff.web.RequestIdFilter;
@@ -30,11 +33,20 @@ import tools.jackson.databind.ObjectMapper;
 /**
  * Crea los RestClient de todos los microservicios con lo común: timeouts, propagación de Authorization y
  * X-Request-Id, y traducción de errores. Un microservicio nuevo solo llama a {@link #create}.
- * Un 404 no se traduce aquí: cada client lo convierte a su excepción de dominio con {@code onStatus}.
+ * <ul>
+ * <li>Siempre: 400 → 400 con detalles · 401/403 → igual · otro código → 502 · caído/timeout → 503.</li>
+ * <li>Solo los códigos que el client pide propagar ({@link #PROPAGAR_NEGOCIO}): 404 y 409 con el mensaje
+ * (y detalles) del microservicio, 503 como 503. Catalog no los pide: su 404 lo resuelve con
+ * {@code onStatus} y su 409/503 siguen siendo 502.</li>
+ * </ul>
  */
 @Slf4j
 @Component
 public class DownstreamRestClientFactory {
+
+    /** 404, 409 y 503 de negocio que se reenvían al front tal cual (los usa orders). */
+    public static final Set<HttpStatus> PROPAGAR_NEGOCIO =
+            Set.of(HttpStatus.NOT_FOUND, HttpStatus.CONFLICT, HttpStatus.SERVICE_UNAVAILABLE);
 
     private final DownstreamProperties properties;
     private final ObjectMapper objectMapper;
@@ -46,6 +58,11 @@ public class DownstreamRestClientFactory {
 
     /** @param servicio nombre legible para mensajes de error, p. ej. "catálogo". */
     public RestClient create(String servicio, String baseUrl) {
+        return create(servicio, baseUrl, Set.of());
+    }
+
+    /** @param propagar códigos (de {@link #PROPAGAR_NEGOCIO}) que se reenvían en vez de convertirse en 502. */
+    public RestClient create(String servicio, String baseUrl, Set<HttpStatus> propagar) {
         HttpClient httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
                 .connectTimeout(properties.connectTimeout())
@@ -67,7 +84,7 @@ public class DownstreamRestClientFactory {
                 })
                 .defaultStatusHandler(HttpStatusCode::isError,
                         (request, response) -> {
-                            throw traducir(servicio, response);
+                            throw traducir(servicio, response, propagar);
                         })
                 .build();
     }
@@ -83,7 +100,8 @@ public class DownstreamRestClientFactory {
         }
     }
 
-    private RuntimeException traducir(String servicio, ClientHttpResponse response) throws IOException {
+    private RuntimeException traducir(String servicio, ClientHttpResponse response, Set<HttpStatus> propagar)
+            throws IOException {
         HttpStatusCode status = response.getStatusCode();
         int code = status.value();
         if (code == 400) {
@@ -92,9 +110,42 @@ public class DownstreamRestClientFactory {
         if (code == 401 || code == 403) {
             return new AccesoRechazadoDownstreamException(HttpStatus.valueOf(code), servicio);
         }
+        HttpStatus conocido = HttpStatus.resolve(code);
+        if (conocido != null && propagar.contains(conocido)) {
+            Map<String, Object> body = leerCuerpo(response);
+            String mensaje = body.get("mensaje") instanceof String m ? m : null;
+            return switch (conocido) {
+                case NOT_FOUND -> new NoEncontradoDownstreamException(
+                        mensaje != null ? mensaje : "Recurso no encontrado en el servicio de " + servicio);
+                case CONFLICT -> new ConflictoDownstreamException(
+                        mensaje != null ? mensaje : "Conflicto en el servicio de " + servicio, detalles(body));
+                default -> {
+                    log.error("Servicio de {} respondió {}: {}", servicio, code, mensaje);
+                    yield mensaje != null
+                            ? ServicioNoDisponibleException.conMensaje(HttpStatus.SERVICE_UNAVAILABLE, mensaje)
+                            : new ServicioNoDisponibleException(HttpStatus.SERVICE_UNAVAILABLE, servicio, null);
+                }
+            };
+        }
         // 5xx u otro código inesperado (incluye 404 en operaciones donde no tiene sentido)
         log.error("Servicio de {} respondió {}", servicio, code);
         return new ServicioNoDisponibleException(HttpStatus.BAD_GATEWAY, servicio, null);
+    }
+
+    /** Cuerpo de error del microservicio como mapa; vacío si no es JSON. */
+    private Map<String, Object> leerCuerpo(ClientHttpResponse response) {
+        try {
+            Map<String, Object> body = objectMapper.readValue(response.getBody(), new TypeReference<>() { });
+            return body != null ? body : Map.of();
+        } catch (IOException | RuntimeException e) {
+            log.warn("No se pudo leer el cuerpo del error del microservicio: {}", e.getMessage());
+            return Map.of();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> detalles(Map<String, Object> body) {
+        return body.get("detalles") instanceof Map<?, ?> d ? new LinkedHashMap<>((Map<String, Object>) d) : null;
     }
 
     private ValidacionDownstreamException validacion(ClientHttpResponse response) {

@@ -23,6 +23,8 @@ pedidos360:
     read-timeout: ${SERVICES_READ_TIMEOUT:5s}
     catalog:
       base-url: ${CATALOG_BASE_URL:http://localhost:8081}
+    orders:
+      base-url: ${ORDERS_BASE_URL:http://localhost:8082}
   security:
     enforce-roles: ${ENFORCE_ROLES:false}
   cors:
