@@ -1,6 +1,7 @@
 package cl.duoc.pedidos360.bff;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -220,5 +221,24 @@ class CatalogEndpointsTest extends AbstractBffTest {
                         .content("{\"precio\":100,\"stock\":1}"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.mensaje").value("Producto no encontrado con id 99"));
+    }
+
+    @Test
+    void deleteDa204CuandoCatalogoResponde204() throws Exception {
+        CATALOG.respond(204, "");
+        mvc.perform(auth(delete(URL + "/7")))
+                .andExpect(status().isNoContent());
+        assertThat(CATALOG.last().method()).isEqualTo("DELETE");
+        assertThat(CATALOG.last().path()).isEqualTo(URL + "/7");
+    }
+
+    @Test
+    void deleteInexistenteEnCatalogoDa404() throws Exception {
+        CATALOG.respond(404, "{\"status\":404,\"mensaje\":\"interno\"}");
+        mvc.perform(auth(delete(URL + "/99")))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.mensaje").value("Producto no encontrado con id 99"))
+                .andExpect(jsonPath("$.path").value(URL + "/99"));
     }
 }

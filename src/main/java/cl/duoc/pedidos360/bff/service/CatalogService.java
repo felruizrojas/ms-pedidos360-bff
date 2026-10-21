@@ -32,4 +32,8 @@ public class CatalogService {
     public ProductoDto actualizar(Long id, ActualizarProductoRequest request) {
         return catalogClient.actualizar(id, request);
     }
+
+    public void eliminar(Long id) {
+        catalogClient.eliminar(id);
+    }
 }

@@ -27,6 +27,7 @@ Capas: `controller` → `service` → `client` (RestClient) · `config` (segurid
 | GET | `/api/catalog/products` | catálogo |
 | GET | `/api/catalog/products/{id}` | catálogo |
 | POST | `/api/catalog/products` | catálogo (201) |
+| DELETE | `/api/catalog/products/{id}` | catálogo (204, borrado lógico; 404 si no existe o ya fue eliminado) |
 | GET | `/actuator/health`, `/swagger-ui.html`, `/v3/api-docs` | público |
 
 Traducción de errores del catálogo: 400/401/403/404 se propagan · 5xx → **502** · caído/timeout → **503**.
@@ -81,6 +82,9 @@ curl -i -X POST $BASE/api/catalog/products \
 curl -i -X POST $BASE/api/catalog/products \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"nombre":"","precio":-1,"stock":-5}'                                         # 400 con "detalles"
+
+# Borrado lógico (con ENFORCE_ROLES=true el token debe tener rol Admin u Operador)
+curl -i -X DELETE -H "Authorization: Bearer $TOKEN" $BASE/api/catalog/products/4  # 204 (repetir → 404)
 
 # Con el catálogo apagado:
 curl -i -H "Authorization: Bearer $TOKEN" $BASE/api/catalog/products       # 503 "Servicio de catálogo no disponible"

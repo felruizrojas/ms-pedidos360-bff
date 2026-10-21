@@ -1,5 +1,6 @@
 package cl.duoc.pedidos360.bff;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -81,5 +82,18 @@ class EnforceRolesTest extends AbstractBffTest {
     void putConOperadorDa200() throws Exception {
         CATALOG.respond(200, "{\"id\":1,\"nombre\":\"Mouse\",\"precio\":900,\"stock\":3}");
         putAs(TestJwt.valid().roles("Operador")).andExpect(status().isOk());
+    }
+
+    @Test
+    void deleteConRolClienteDa403() throws Exception {
+        mvc.perform(delete(URL + "/1").header(HttpHeaders.AUTHORIZATION, TestJwt.valid().roles("Cliente").bearer()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void deleteConAdminDa204() throws Exception {
+        CATALOG.respond(204, "");
+        mvc.perform(delete(URL + "/1").header(HttpHeaders.AUTHORIZATION, TestJwt.valid().roles("Admin").bearer()))
+                .andExpect(status().isNoContent());
     }
 }

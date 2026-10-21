@@ -1,5 +1,6 @@
 package cl.duoc.pedidos360.bff;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -33,5 +34,12 @@ class CatalogDownTest {
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.mensaje").value("Servicio de catálogo no disponible"))
                 .andExpect(jsonPath("$.path").value("/api/catalog/products"));
+    }
+
+    @Test
+    void deleteConConexionRechazadaDa503() throws Exception {
+        mvc.perform(delete("/api/catalog/products/1").header(HttpHeaders.AUTHORIZATION, TestJwt.valid().bearer()))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.mensaje").value("Servicio de catálogo no disponible"));
     }
 }

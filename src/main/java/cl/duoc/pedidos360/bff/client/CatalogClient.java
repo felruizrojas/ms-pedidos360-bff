@@ -57,4 +57,14 @@ public class CatalogClient {
                 })
                 .body(ProductoDto.class);
     }
+
+    /** Borrado lógico en catalog (204). 401/403, 5xx y caídas los traduce la infraestructura del RestClient. */
+    public void eliminar(Long id) {
+        restClient.delete().uri(PRODUCTS + "/{id}", id)
+                .retrieve()
+                .onStatus(status -> status.value() == HttpStatus.NOT_FOUND.value(), (req, res) -> {
+                    throw new ProductoNoEncontradoException(id);
+                })
+                .toBodilessEntity();
+    }
 }
