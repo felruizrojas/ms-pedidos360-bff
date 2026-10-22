@@ -241,4 +241,30 @@ class CatalogEndpointsTest extends AbstractBffTest {
                 .andExpect(jsonPath("$.mensaje").value("Producto no encontrado con id 99"))
                 .andExpect(jsonPath("$.path").value(URL + "/99"));
     }
+
+    @Test
+    void listarEliminadosLlamaAlCatalogo() throws Exception {
+        CATALOG.respond(200, "[" + PRODUCTO + "]");
+        mvc.perform(auth(get(URL + "/eliminados")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].nombre").value("Teclado"));
+        assertThat(CATALOG.last().path()).isEqualTo(URL + "/eliminados");
+    }
+
+    @Test
+    void restaurarHacePutAlCatalogo() throws Exception {
+        CATALOG.respond(200, PRODUCTO);
+        mvc.perform(auth(put(URL + "/7/restaurar")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(7));
+        assertThat(CATALOG.last().method()).isEqualTo("PUT");
+        assertThat(CATALOG.last().path()).isEqualTo(URL + "/7/restaurar");
+    }
+
+    @Test
+    void restaurarInexistenteDevuelve404() throws Exception {
+        CATALOG.respond(404, "{\"status\":404,\"mensaje\":\"no existe\"}");
+        mvc.perform(auth(put(URL + "/99/restaurar")))
+                .andExpect(status().isNotFound());
+    }
 }

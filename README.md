@@ -33,6 +33,8 @@ Capas: `controller` → `service` → `client` (RestClient) · `config` (segurid
 | POST | `/api/catalog/products` | catálogo (201) |
 | PUT | `/api/catalog/products/{id}` | catálogo |
 | DELETE | `/api/catalog/products/{id}` | catálogo (204, borrado lógico; 404 si no existe o ya fue eliminado) |
+| GET | `/api/catalog/products/eliminados` | catálogo (Admin/Operador con `ENFORCE_ROLES=true`) |
+| PUT | `/api/catalog/products/{id}/restaurar` | catálogo (deshace el borrado lógico; Admin/Operador con `ENFORCE_ROLES=true`) |
 | POST | `/api/orders` | pedidos (201) |
 | GET | `/api/orders?estado=&desde=&hasta=&page=&size=` | pedidos (query params reenviados tal cual; solo los que vienen) |
 | GET | `/api/orders/{id}` | pedidos |

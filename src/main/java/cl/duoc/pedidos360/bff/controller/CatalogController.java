@@ -35,6 +35,19 @@ public class CatalogController {
         return catalogService.listar();
     }
 
+    @Operation(summary = "Listar productos eliminados (borrado lógico)",
+            description = "Para que Admin/Operador puedan deshacer la eliminación.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Productos eliminados"),
+        @ApiResponse(responseCode = "401", description = "Token ausente, inválido o expirado"),
+        @ApiResponse(responseCode = "403", description = "Falta el scope o el rol Admin/Operador (ENFORCE_ROLES=true)"),
+        @ApiResponse(responseCode = "503", description = "Servicio de catálogo no disponible")
+    })
+    @GetMapping("/eliminados")
+    public List<ProductoDto> listarEliminados() {
+        return catalogService.listarEliminados();
+    }
+
     @GetMapping("/{id}")
     public ProductoDto buscarPorId(@PathVariable Long id) {
         return catalogService.buscarPorId(id);
@@ -64,5 +77,19 @@ public class CatalogController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminar(@PathVariable Long id) {
         catalogService.eliminar(id);
+    }
+
+    @Operation(summary = "Restaurar producto eliminado",
+            description = "Deshace el borrado lógico: vuelve a listarse y a poder pedirse. Idempotente.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Producto restaurado"),
+        @ApiResponse(responseCode = "401", description = "Token ausente, inválido o expirado"),
+        @ApiResponse(responseCode = "403", description = "Falta el scope o el rol Admin/Operador (ENFORCE_ROLES=true)"),
+        @ApiResponse(responseCode = "404", description = "El producto no existe"),
+        @ApiResponse(responseCode = "503", description = "Servicio de catálogo no disponible")
+    })
+    @PutMapping("/{id}/restaurar")
+    public ProductoDto restaurar(@PathVariable Long id) {
+        return catalogService.restaurar(id);
     }
 }

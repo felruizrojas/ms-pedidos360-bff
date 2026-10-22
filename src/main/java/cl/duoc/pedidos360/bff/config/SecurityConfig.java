@@ -59,7 +59,9 @@ public class SecurityConfig {
                             "/v3/api-docs/**",
                             "/actuator/health").permitAll();
                     if (enforceRoles) {
-                        // Catálogo: escribir es de Admin/Operador.
+                        // Catálogo: escribir y ver los eliminados (para restaurarlos) es de Admin/Operador.
+                        auth.requestMatchers(HttpMethod.GET, "/api/catalog/products/eliminados")
+                                .access(scopeY(ADMIN, OPERADOR));
                         for (HttpMethod method : List.of(HttpMethod.POST, HttpMethod.PUT, HttpMethod.DELETE)) {
                             auth.requestMatchers(method, "/api/catalog/**").access(scopeY(ADMIN, OPERADOR));
                         }

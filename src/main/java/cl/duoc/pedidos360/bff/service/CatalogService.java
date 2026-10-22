@@ -21,6 +21,10 @@ public class CatalogService {
         return catalogClient.listar();
     }
 
+    public List<ProductoDto> listarEliminados() {
+        return catalogClient.listarEliminados();
+    }
+
     public ProductoDto buscarPorId(Long id) {
         return catalogClient.buscarPorId(id);
     }
@@ -35,5 +39,9 @@ public class CatalogService {
 
     public void eliminar(Long id) {
         catalogClient.eliminar(id);
+    }
+
+    public ProductoDto restaurar(Long id) {
+        return catalogClient.restaurar(id);
     }
 }

@@ -96,4 +96,23 @@ class EnforceRolesTest extends AbstractBffTest {
         mvc.perform(delete(URL + "/1").header(HttpHeaders.AUTHORIZATION, TestJwt.valid().roles("Admin").bearer()))
                 .andExpect(status().isNoContent());
     }
+
+    @Test
+    void eliminadosConRolClienteDa403() throws Exception {
+        mvc.perform(get(URL + "/eliminados").header(HttpHeaders.AUTHORIZATION, TestJwt.valid().roles("Cliente").bearer()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void restaurarConRolClienteDa403() throws Exception {
+        mvc.perform(put(URL + "/1/restaurar").header(HttpHeaders.AUTHORIZATION, TestJwt.valid().roles("Cliente").bearer()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void restaurarConOperadorDa200() throws Exception {
+        CATALOG.respond(200, "{\"id\":1,\"nombre\":\"Taza\",\"descripcion\":\"\",\"precio\":1000,\"stock\":1}");
+        mvc.perform(put(URL + "/1/restaurar").header(HttpHeaders.AUTHORIZATION, TestJwt.valid().roles("Operador").bearer()))
+                .andExpect(status().isOk());
+    }
 }

@@ -32,6 +32,12 @@ public class CatalogClient {
                 .body(new ParameterizedTypeReference<List<ProductoDto>>() { });
     }
 
+    public List<ProductoDto> listarEliminados() {
+        return restClient.get().uri(PRODUCTS + "/eliminados")
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<ProductoDto>>() { });
+    }
+
     public ProductoDto buscarPorId(Long id) {
         return restClient.get().uri(PRODUCTS + "/{id}", id)
                 .retrieve()
@@ -66,5 +72,15 @@ public class CatalogClient {
                     throw new ProductoNoEncontradoException(id);
                 })
                 .toBodilessEntity();
+    }
+
+    /** Deshace el borrado lógico en catalog (200 con el producto; idempotente). */
+    public ProductoDto restaurar(Long id) {
+        return restClient.put().uri(PRODUCTS + "/{id}/restaurar", id)
+                .retrieve()
+                .onStatus(status -> status.value() == HttpStatus.NOT_FOUND.value(), (req, res) -> {
+                    throw new ProductoNoEncontradoException(id);
+                })
+                .body(ProductoDto.class);
     }
 }
