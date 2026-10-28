@@ -18,6 +18,7 @@ import cl.duoc.pedidos360.bff.dto.ActualizarPedidoRequest;
 import cl.duoc.pedidos360.bff.dto.CambiarEstadoRequest;
 import cl.duoc.pedidos360.bff.dto.CrearPedidoRequest;
 import cl.duoc.pedidos360.bff.dto.HistorialEstadoDto;
+import cl.duoc.pedidos360.bff.dto.MensajeComandoDto;
 import cl.duoc.pedidos360.bff.dto.NotificacionDto;
 import cl.duoc.pedidos360.bff.dto.PaginaDto;
 import cl.duoc.pedidos360.bff.dto.PedidoDto;
@@ -100,6 +101,13 @@ public class OrdersController {
     @GetMapping("/{id}/history")
     public List<HistorialEstadoDto> historial(@PathVariable Long id) {
         return ordersService.historial(id);
+    }
+
+    @Operation(summary = "Mensajería del pedido por RabbitMQ: cada comando y su resultado (solo Operador; lo valida orders)")
+    @ApiResponse(responseCode = "200", description = "Pasos de cada comando, más antiguo primero")
+    @GetMapping("/{id}/messages")
+    public List<MensajeComandoDto> mensajes(@PathVariable Long id) {
+        return ordersService.mensajes(id);
     }
 
     @Operation(summary = "Avisos en la app del usuario: pedido cancelado, modificado o eliminado (últimos 20)")

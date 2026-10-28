@@ -11,6 +11,7 @@ import cl.duoc.pedidos360.bff.dto.ActualizarPedidoRequest;
 import cl.duoc.pedidos360.bff.dto.CambiarEstadoRequest;
 import cl.duoc.pedidos360.bff.dto.CrearPedidoRequest;
 import cl.duoc.pedidos360.bff.dto.HistorialEstadoDto;
+import cl.duoc.pedidos360.bff.dto.MensajeComandoDto;
 import cl.duoc.pedidos360.bff.dto.NotificacionDto;
 import cl.duoc.pedidos360.bff.dto.PaginaDto;
 import cl.duoc.pedidos360.bff.dto.PedidoDto;
@@ -58,6 +59,10 @@ public class OrdersService {
 
     public void eliminar(Long id) {
         ordersClient.eliminar(id);
+    }
+
+    public List<MensajeComandoDto> mensajes(Long id) {
+        return ordersClient.mensajes(id);
     }
 
     public List<NotificacionDto> notificaciones() {

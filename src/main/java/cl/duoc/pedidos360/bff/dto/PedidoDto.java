@@ -25,5 +25,7 @@ public record PedidoDto(
         Instant entregadoEn,
         Instant canceladoEn,
         String motivoCancelacion,
-        Long version) {
+        Long version,
+        /** true si algún mensaje del pedido falló o quedó en la DLQ (ver /{id}/messages). */
+        Boolean alertaMensajeria) {
 }
