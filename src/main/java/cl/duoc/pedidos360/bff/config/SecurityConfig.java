@@ -58,17 +58,20 @@ public class SecurityConfig {
                             "/swagger-ui.html",
                             "/v3/api-docs/**",
                             "/actuator/health").permitAll();
+                    // Usuarios (datos personales de Entra ID): solo Admin, siempre, aunque ENFORCE_ROLES=false.
+                    // /api/users/me queda para cualquier usuario con el scope (registra su inicio de sesión).
+                    auth.requestMatchers(HttpMethod.GET, "/api/users").access(scopeY(ADMIN));
                     if (enforceRoles) {
-                        // Catálogo: escribir y ver los eliminados (para restaurarlos) es de Admin/Operador.
+                        // Catálogo: escribir y ver los eliminados (para restaurarlos) es solo de Admin.
                         auth.requestMatchers(HttpMethod.GET, "/api/catalog/products/eliminados")
-                                .access(scopeY(ADMIN, OPERADOR));
+                                .access(scopeY(ADMIN));
                         for (HttpMethod method : List.of(HttpMethod.POST, HttpMethod.PUT, HttpMethod.DELETE)) {
-                            auth.requestMatchers(method, "/api/catalog/**").access(scopeY(ADMIN, OPERADOR));
+                            auth.requestMatchers(method, "/api/catalog/**").access(scopeY(ADMIN));
                         }
-                        // Pedidos: borrar es solo de Admin; el resto, cualquier rol de la app. La autorización
+                        // Pedidos: los actores son Operador y Cliente; borrar es solo del Operador. La autorización
                         // fina (dueño del pedido, qué transición puede hacer cada rol) la hace orders.
-                        auth.requestMatchers(HttpMethod.DELETE, "/api/orders/**").access(scopeY(ADMIN));
-                        auth.requestMatchers("/api/orders/**").access(scopeY(ADMIN, OPERADOR, CLIENTE));
+                        auth.requestMatchers(HttpMethod.DELETE, "/api/orders/**").access(scopeY(OPERADOR));
+                        auth.requestMatchers("/api/orders/**").access(scopeY(OPERADOR, CLIENTE));
                     }
                     auth.requestMatchers("/api/**").hasAuthority(SCOPE)
                             .anyRequest().authenticated();

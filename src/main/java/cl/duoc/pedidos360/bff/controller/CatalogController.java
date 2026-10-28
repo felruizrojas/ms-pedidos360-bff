@@ -36,11 +36,11 @@ public class CatalogController {
     }
 
     @Operation(summary = "Listar productos eliminados (borrado lógico)",
-            description = "Para que Admin/Operador puedan deshacer la eliminación.")
+            description = "Para que Admin pueda deshacer la eliminación.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Productos eliminados"),
         @ApiResponse(responseCode = "401", description = "Token ausente, inválido o expirado"),
-        @ApiResponse(responseCode = "403", description = "Falta el scope o el rol Admin/Operador (ENFORCE_ROLES=true)"),
+        @ApiResponse(responseCode = "403", description = "Falta el scope o el rol Admin (ENFORCE_ROLES=true)"),
         @ApiResponse(responseCode = "503", description = "Servicio de catálogo no disponible")
     })
     @GetMapping("/eliminados")
@@ -69,7 +69,7 @@ public class CatalogController {
     @ApiResponses({
         @ApiResponse(responseCode = "204", description = "Producto eliminado"),
         @ApiResponse(responseCode = "401", description = "Token ausente, inválido o expirado"),
-        @ApiResponse(responseCode = "403", description = "Falta el scope o el rol Admin/Operador (ENFORCE_ROLES=true)"),
+        @ApiResponse(responseCode = "403", description = "Falta el scope o el rol Admin (ENFORCE_ROLES=true)"),
         @ApiResponse(responseCode = "404", description = "El producto no existe o ya fue eliminado"),
         @ApiResponse(responseCode = "503", description = "Servicio de catálogo no disponible")
     })
@@ -84,7 +84,7 @@ public class CatalogController {
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Producto restaurado"),
         @ApiResponse(responseCode = "401", description = "Token ausente, inválido o expirado"),
-        @ApiResponse(responseCode = "403", description = "Falta el scope o el rol Admin/Operador (ENFORCE_ROLES=true)"),
+        @ApiResponse(responseCode = "403", description = "Falta el scope o el rol Admin (ENFORCE_ROLES=true)"),
         @ApiResponse(responseCode = "404", description = "El producto no existe"),
         @ApiResponse(responseCode = "503", description = "Servicio de catálogo no disponible")
     })

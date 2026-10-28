@@ -52,8 +52,8 @@ class EnforceRolesTest extends AbstractBffTest {
     }
 
     @Test
-    void postConOperadorDa201() throws Exception {
-        postAs(TestJwt.valid().roles("Operador")).andExpect(status().isCreated());
+    void postConOperadorDa403() throws Exception {
+        postAs(TestJwt.valid().roles("Operador")).andExpect(status().isForbidden());
     }
 
     @Test
@@ -79,9 +79,14 @@ class EnforceRolesTest extends AbstractBffTest {
     }
 
     @Test
-    void putConOperadorDa200() throws Exception {
+    void putConAdminDa200() throws Exception {
         CATALOG.respond(200, "{\"id\":1,\"nombre\":\"Mouse\",\"precio\":900,\"stock\":3}");
-        putAs(TestJwt.valid().roles("Operador")).andExpect(status().isOk());
+        putAs(TestJwt.valid().roles("Admin")).andExpect(status().isOk());
+    }
+
+    @Test
+    void putConOperadorDa403() throws Exception {
+        putAs(TestJwt.valid().roles("Operador")).andExpect(status().isForbidden());
     }
 
     @Test
@@ -110,9 +115,15 @@ class EnforceRolesTest extends AbstractBffTest {
     }
 
     @Test
-    void restaurarConOperadorDa200() throws Exception {
+    void restaurarConAdminDa200() throws Exception {
         CATALOG.respond(200, "{\"id\":1,\"nombre\":\"Taza\",\"descripcion\":\"\",\"precio\":1000,\"stock\":1}");
-        mvc.perform(put(URL + "/1/restaurar").header(HttpHeaders.AUTHORIZATION, TestJwt.valid().roles("Operador").bearer()))
+        mvc.perform(put(URL + "/1/restaurar").header(HttpHeaders.AUTHORIZATION, TestJwt.valid().roles("Admin").bearer()))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void restaurarConOperadorDa403() throws Exception {
+        mvc.perform(put(URL + "/1/restaurar").header(HttpHeaders.AUTHORIZATION, TestJwt.valid().roles("Operador").bearer()))
+                .andExpect(status().isForbidden());
     }
 }

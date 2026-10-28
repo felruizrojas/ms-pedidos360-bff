@@ -87,7 +87,7 @@ public class OrdersController {
     }
 
     @Operation(summary = "Cambiar estado",
-            description = "Operador/Admin: cualquier transición válida. Cliente: solo CANCELADO de su pedido en CREADO.")
+            description = "Operador: cualquier transición válida. Cliente: solo CANCELADO de su pedido en CREADO.")
     @ApiResponse(responseCode = "200", description = "Pedido con el estado nuevo")
     @PutMapping("/{id}/status")
     public PedidoDto cambiarEstado(@PathVariable Long id, @Valid @RequestBody CambiarEstadoRequest request) {
@@ -101,7 +101,7 @@ public class OrdersController {
         return ordersService.historial(id);
     }
 
-    @Operation(summary = "Eliminar pedido (borrado lógico; solo Admin)")
+    @Operation(summary = "Eliminar pedido (borrado lógico; solo Operador)")
     @ApiResponse(responseCode = "204", description = "Pedido eliminado")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)

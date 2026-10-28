@@ -29,6 +29,16 @@ pedidos360:
     enforce-roles: ${ENFORCE_ROLES:false}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+  # Vista de usuarios del dashboard: Microsoft Graph con client credentials del app registration de la API
+  # (permisos de aplicación User.Read.All y Application.Read.All, con consentimiento de admin).
+  graph:
+    tenant-id: ${ENTRA_TENANT_ID:0bfad962-b91d-465a-b769-8e71565efe7d}
+    client-id: ${GRAPH_CLIENT_ID:${ENTRA_API_CLIENT_ID:d80d5009-1b8a-49b2-a3da-08a8bbd00936}}
+    client-secret: ${GRAPH_CLIENT_SECRET:}
+    api-app-id: ${ENTRA_API_CLIENT_ID:d80d5009-1b8a-49b2-a3da-08a8bbd00936}
+  # Registro de inicios de sesión (activo/inactivo). Vacío = solo en memoria (se pierde al reiniciar).
+  accesos:
+    archivo: ${ACCESOS_ARCHIVO:}
 
 logging:
   pattern:

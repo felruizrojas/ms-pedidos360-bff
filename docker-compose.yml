@@ -12,4 +12,12 @@ services:
       ORDERS_BASE_URL: ${ORDERS_BASE_URL:?falta ORDERS_BASE_URL en .env}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
       ENFORCE_ROLES: ${ENFORCE_ROLES:-false}
+      # Vista de usuarios: sin GRAPH_CLIENT_SECRET, GET /api/users responde 503 (el resto funciona igual).
+      GRAPH_CLIENT_SECRET: ${GRAPH_CLIENT_SECRET:-}
+      ACCESOS_ARCHIVO: /app/data/accesos.json
+    volumes:
+      - bff-data:/app/data
     mem_limit: 768m
+
+volumes:
+  bff-data:

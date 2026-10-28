@@ -9,7 +9,8 @@ RUN mvn -B -q package -DskipTests
 # Etapa 2: imagen final solo con el JRE y el jar
 FROM eclipse-temurin:25-jre
 WORKDIR /app
-RUN useradd --system --uid 1001 spring
+RUN useradd --system --uid 1001 spring \
+    && mkdir -p /app/data && chown spring /app/data
 COPY --from=build /workspace/target/*.jar app.jar
 USER spring
 EXPOSE 8080

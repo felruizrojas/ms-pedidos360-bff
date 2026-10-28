@@ -20,7 +20,7 @@ import cl.duoc.pedidos360.bff.support.AbstractBffTest;
 import cl.duoc.pedidos360.bff.support.PedidosEjemplo;
 import cl.duoc.pedidos360.bff.support.TestJwt;
 
-/** ENFORCE_ROLES=true: el Cliente opera sus pedidos, no el catálogo; borrar pedidos es solo de Admin. */
+/** ENFORCE_ROLES=true: el Cliente opera sus pedidos, no el catálogo; borrar pedidos es solo del Operador; Admin no opera pedidos. */
 @TestPropertySource(properties = "pedidos360.security.enforce-roles=true")
 class OrdersRolesTest extends AbstractBffTest {
 
@@ -84,14 +84,21 @@ class OrdersRolesTest extends AbstractBffTest {
     }
 
     @Test
-    void soloAdminPuedeEliminarPedido() throws Exception {
+    void soloOperadorPuedeEliminarPedido() throws Exception {
         ORDERS.respond(204, "");
-        as(TestJwt.valid().roles("Admin"), delete(URL + "/15")).andExpect(status().isNoContent());
+        as(TestJwt.valid().roles("Operador"), delete(URL + "/15")).andExpect(status().isNoContent());
     }
 
     @Test
-    void operadorNoPuedeEliminarPedido() throws Exception {
-        as(TestJwt.valid().roles("Operador"), delete(URL + "/15")).andExpect(status().isForbidden());
+    void adminNoPuedeEliminarPedido() throws Exception {
+        as(TestJwt.valid().roles("Admin"), delete(URL + "/15")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminNoOperaPedidos() throws Exception {
+        as(TestJwt.valid().roles("Admin"), get(URL)).andExpect(status().isForbidden());
+        as(TestJwt.valid().roles("Admin"), json(put(URL + "/15/status"), "{\"status\":\"ACEPTADO\"}"))
+                .andExpect(status().isForbidden());
     }
 
     @Test

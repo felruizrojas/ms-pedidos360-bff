@@ -26,6 +26,8 @@ public final class TestJwt {
     private String audience = AUDIENCE;
     private String scope = "access_as_user";
     private List<String> roles = List.of();
+    private String oid;
+    private String name;
     private Instant expiresAt = Instant.now().plusSeconds(3600);
     private Instant notBefore = Instant.now().minusSeconds(60);
     private KeyPair signingKeys = KEYS;
@@ -42,6 +44,8 @@ public final class TestJwt {
     public TestJwt audience(String v) { this.audience = v; return this; }
     public TestJwt scope(String v) { this.scope = v; return this; }
     public TestJwt roles(String... v) { this.roles = List.of(v); return this; }
+    public TestJwt oid(String v) { this.oid = v; return this; }
+    public TestJwt name(String v) { this.name = v; return this; }
     public TestJwt expiresAt(Instant v) { this.expiresAt = v; return this; }
     public TestJwt notBefore(Instant v) { this.notBefore = v; return this; }
     public TestJwt signedWithOtherKey() { this.signingKeys = OTHER_KEYS; return this; }
@@ -64,6 +68,12 @@ public final class TestJwt {
             }
             if (!roles.isEmpty()) {
                 claims.claim("roles", roles);
+            }
+            if (oid != null) {
+                claims.claim("oid", oid);
+            }
+            if (name != null) {
+                claims.claim("name", name);
             }
             SignedJWT jwt = new SignedJWT(new JWSHeader(JWSAlgorithm.RS256), claims.build());
             jwt.sign(new RSASSASigner(signingKeys.getPrivate()));
