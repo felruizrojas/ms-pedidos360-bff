@@ -179,3 +179,5 @@ curl -i $BASE/api/orders -H "Authorization: Bearer $OPERADOR"                   
 
 ## Agregar un microservicio
 Propiedad `pedidos360.services.<ms>.base-url` → DTOs propios → `client/<Ms>Client` con `DownstreamRestClientFactory` (ya aporta timeouts, propagación de token/X-Request-Id y traducción de errores) → `service` + `controller` con el mismo path (`/api/<ms>/...`). Si sus 404/409/503 deben llegar al front tal cual, crear el client con `PROPAGAR_NEGOCIO` (como orders). El scope ya lo cubre `/api/**`; las reglas por rol se agregan en `SecurityConfig`.
+
+#evaluacion 2
