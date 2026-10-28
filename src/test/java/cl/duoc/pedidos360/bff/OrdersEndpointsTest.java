@@ -180,6 +180,29 @@ class OrdersEndpointsTest extends AbstractBffTest {
         cabecerasPropagadas();
     }
 
+    @Test
+    void notificacionesReenviaGet() throws Exception {
+        ORDERS.respond(200, "[{\"id\":3,\"pedidoId\":15,\"titulo\":\"Pedido cancelado\","
+                + "\"mensaje\":\"Tu pedido #15 fue cancelado.\",\"fecha\":\"2026-10-20T15:10:00Z\",\"leida\":false}]");
+        mvc.perform(auth(get(URL + "/notifications")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].pedidoId").value(15))
+                .andExpect(jsonPath("$[0].titulo").value("Pedido cancelado"))
+                .andExpect(jsonPath("$[0].leida").value(false));
+        assertThat(ORDERS.last().method()).isEqualTo("GET");
+        assertThat(ORDERS.last().path()).isEqualTo(URL + "/notifications");
+        cabecerasPropagadas();
+    }
+
+    @Test
+    void marcarNotificacionesLeidasReenviaPutYDevuelve204() throws Exception {
+        ORDERS.respond(204, "");
+        mvc.perform(auth(put(URL + "/notifications/read"))).andExpect(status().isNoContent());
+        assertThat(ORDERS.last().method()).isEqualTo("PUT");
+        assertThat(ORDERS.last().path()).isEqualTo(URL + "/notifications/read");
+        cabecerasPropagadas();
+    }
+
     // --- Traducción de errores ---
 
     @Test
