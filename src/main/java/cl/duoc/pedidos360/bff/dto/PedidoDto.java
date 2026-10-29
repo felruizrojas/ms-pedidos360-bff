@@ -26,6 +26,8 @@ public record PedidoDto(
         Instant canceladoEn,
         String motivoCancelacion,
         Long version,
-        /** true si algún mensaje del pedido falló o quedó en la DLQ (ver /{id}/messages). */
-        Boolean alertaMensajeria) {
+        /** Borrado lógico: se muestra como Eliminado y no se puede modificar. */
+        Boolean eliminado,
+        Instant eliminadoEn,
+        String eliminadoPor) {
 }

@@ -42,8 +42,6 @@ Capas: `controller` → `service` → `client` (RestClient) · `config` (segurid
 | PUT | `/api/orders/{id}/status` | pedidos (`{"status":"ACEPTADO","comentario":"..."}`) |
 | GET | `/api/orders/{id}/history` | pedidos |
 | DELETE | `/api/orders/{id}` | pedidos (204, borrado lógico; solo Admin) |
-| GET | `/api/orders/notifications` | pedidos (avisos en la app del usuario: pedido cancelado, modificado o eliminado) |
-| PUT | `/api/orders/notifications/read` | pedidos (204, marca todos los avisos como leídos) |
 | GET | `/actuator/health`, `/swagger-ui.html`, `/v3/api-docs` | público |
 
 Los JSON de request/response de pedidos son los del contrato de orders (README de ms-pedidos360-orders, "Contrato para otros servicios"). El BFF solo valida la forma básica (`direccionEntrega` e `items` obligatorios, `productoId`/`cantidad` presentes, `status` presente); rangos, estados válidos y existencia de productos los valida orders y el BFF reenvía su 400.

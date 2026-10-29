@@ -180,43 +180,6 @@ class OrdersEndpointsTest extends AbstractBffTest {
         cabecerasPropagadas();
     }
 
-    @Test
-    void mensajeriaReenviaGet() throws Exception {
-        ORDERS.respond(200, "[{\"comando\":\"kitchen\",\"type\":\"KitchenTicketRequested\",\"estado\":\"EN_DLQ\","
-                + "\"motivo\":\"Expiró\",\"usuarioNombre\":\"Olga\",\"usuarioRol\":\"Operador\","
-                + "\"comandoEventId\":\"e-1\",\"fecha\":\"2026-10-20T15:10:00Z\"}]");
-        mvc.perform(auth(get(URL + "/15/messages")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].comando").value("kitchen"))
-                .andExpect(jsonPath("$[0].estado").value("EN_DLQ"))
-                .andExpect(jsonPath("$[0].usuarioRol").value("Operador"));
-        assertThat(ORDERS.last().path()).isEqualTo(URL + "/15/messages");
-        cabecerasPropagadas();
-    }
-
-    @Test
-    void notificacionesReenviaGet() throws Exception {
-        ORDERS.respond(200, "[{\"id\":3,\"pedidoId\":15,\"titulo\":\"Pedido cancelado\","
-                + "\"mensaje\":\"Tu pedido #15 fue cancelado.\",\"fecha\":\"2026-10-20T15:10:00Z\",\"leida\":false}]");
-        mvc.perform(auth(get(URL + "/notifications")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].pedidoId").value(15))
-                .andExpect(jsonPath("$[0].titulo").value("Pedido cancelado"))
-                .andExpect(jsonPath("$[0].leida").value(false));
-        assertThat(ORDERS.last().method()).isEqualTo("GET");
-        assertThat(ORDERS.last().path()).isEqualTo(URL + "/notifications");
-        cabecerasPropagadas();
-    }
-
-    @Test
-    void marcarNotificacionesLeidasReenviaPutYDevuelve204() throws Exception {
-        ORDERS.respond(204, "");
-        mvc.perform(auth(put(URL + "/notifications/read"))).andExpect(status().isNoContent());
-        assertThat(ORDERS.last().method()).isEqualTo("PUT");
-        assertThat(ORDERS.last().path()).isEqualTo(URL + "/notifications/read");
-        cabecerasPropagadas();
-    }
-
     // --- Traducción de errores ---
 
     @Test

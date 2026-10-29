@@ -15,8 +15,6 @@ import cl.duoc.pedidos360.bff.dto.ActualizarPedidoRequest;
 import cl.duoc.pedidos360.bff.dto.CambiarEstadoRequest;
 import cl.duoc.pedidos360.bff.dto.CrearPedidoRequest;
 import cl.duoc.pedidos360.bff.dto.HistorialEstadoDto;
-import cl.duoc.pedidos360.bff.dto.MensajeComandoDto;
-import cl.duoc.pedidos360.bff.dto.NotificacionDto;
 import cl.duoc.pedidos360.bff.dto.PaginaDto;
 import cl.duoc.pedidos360.bff.dto.PedidoDto;
 
@@ -86,24 +84,6 @@ public class OrdersClient {
     /** Borrado lógico en orders (204). */
     public void eliminar(Long id) {
         restClient.delete().uri(ORDERS + "/{id}", id)
-                .retrieve()
-                .toBodilessEntity();
-    }
-
-    public List<MensajeComandoDto> mensajes(Long id) {
-        return restClient.get().uri(ORDERS + "/{id}/messages", id)
-                .retrieve()
-                .body(new ParameterizedTypeReference<List<MensajeComandoDto>>() { });
-    }
-
-    public List<NotificacionDto> notificaciones() {
-        return restClient.get().uri(ORDERS + "/notifications")
-                .retrieve()
-                .body(new ParameterizedTypeReference<List<NotificacionDto>>() { });
-    }
-
-    public void marcarNotificacionesLeidas() {
-        restClient.put().uri(ORDERS + "/notifications/read")
                 .retrieve()
                 .toBodilessEntity();
     }

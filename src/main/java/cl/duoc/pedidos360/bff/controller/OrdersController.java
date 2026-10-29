@@ -18,8 +18,6 @@ import cl.duoc.pedidos360.bff.dto.ActualizarPedidoRequest;
 import cl.duoc.pedidos360.bff.dto.CambiarEstadoRequest;
 import cl.duoc.pedidos360.bff.dto.CrearPedidoRequest;
 import cl.duoc.pedidos360.bff.dto.HistorialEstadoDto;
-import cl.duoc.pedidos360.bff.dto.MensajeComandoDto;
-import cl.duoc.pedidos360.bff.dto.NotificacionDto;
 import cl.duoc.pedidos360.bff.dto.PaginaDto;
 import cl.duoc.pedidos360.bff.dto.PedidoDto;
 import cl.duoc.pedidos360.bff.service.OrdersService;
@@ -103,29 +101,7 @@ public class OrdersController {
         return ordersService.historial(id);
     }
 
-    @Operation(summary = "Mensajería del pedido por RabbitMQ: cada comando y su resultado (solo Operador; lo valida orders)")
-    @ApiResponse(responseCode = "200", description = "Pasos de cada comando, más antiguo primero")
-    @GetMapping("/{id}/messages")
-    public List<MensajeComandoDto> mensajes(@PathVariable Long id) {
-        return ordersService.mensajes(id);
-    }
-
-    @Operation(summary = "Avisos en la app del usuario: pedido cancelado, modificado o eliminado (últimos 20)")
-    @ApiResponse(responseCode = "200", description = "Notificaciones, más recientes primero")
-    @GetMapping("/notifications")
-    public List<NotificacionDto> notificaciones() {
-        return ordersService.notificaciones();
-    }
-
-    @Operation(summary = "Marcar todos los avisos del usuario como leídos")
-    @ApiResponse(responseCode = "204", description = "Marcados")
-    @PutMapping("/notifications/read")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void marcarNotificacionesLeidas() {
-        ordersService.marcarNotificacionesLeidas();
-    }
-
-    @Operation(summary = "Eliminar pedido (borrado lógico; solo Operador; avisa al cliente)")
+    @Operation(summary = "Eliminar pedido (borrado lógico: queda visible como Eliminado; solo Operador; avisa al cliente)")
     @ApiResponse(responseCode = "204", description = "Pedido eliminado")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
