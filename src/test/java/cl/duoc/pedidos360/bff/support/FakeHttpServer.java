@@ -13,7 +13,7 @@ public abstract class FakeHttpServer {
 
     /** query: query string crudo tal como llegó (null si no vino). */
     public record Received(String method, String path, String query, String authorization, String requestId,
-            String contentType, String body) { }
+            String contentType, String body, String forwardedFor, String originalUserAgent) { }
 
     private final HttpServer server;
     private volatile int status = 200;
@@ -33,7 +33,9 @@ public abstract class FakeHttpServer {
                     exchange.getRequestURI().getRawQuery(),
                     exchange.getRequestHeaders().getFirst("Authorization"),
                     exchange.getRequestHeaders().getFirst("X-Request-Id"),
-                    exchange.getRequestHeaders().getFirst("Content-Type"), body));
+                    exchange.getRequestHeaders().getFirst("Content-Type"), body,
+                    exchange.getRequestHeaders().getFirst("X-Forwarded-For"),
+                    exchange.getRequestHeaders().getFirst("X-Original-User-Agent")));
             if (delayMillis > 0) {
                 try {
                     Thread.sleep(delayMillis);

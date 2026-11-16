@@ -18,10 +18,14 @@ public abstract class AbstractBffTest {
 
     protected static final FakeCatalogServer CATALOG = new FakeCatalogServer();
     protected static final FakeOrdersServer ORDERS = new FakeOrdersServer();
+    protected static final FakeReportServer REPORT = new FakeReportServer();
+    protected static final FakeAuditServer AUDIT = new FakeAuditServer();
 
     @DynamicPropertySource
     static void downstreamUrls(DynamicPropertyRegistry registry) {
         registry.add("pedidos360.services.catalog.base-url", CATALOG::baseUrl);
         registry.add("pedidos360.services.orders.base-url", ORDERS::baseUrl);
+        registry.add("pedidos360.services.report.base-url", REPORT::baseUrl);
+        registry.add("pedidos360.services.audit.base-url", AUDIT::baseUrl);
     }
 }

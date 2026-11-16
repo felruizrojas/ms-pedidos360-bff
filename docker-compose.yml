@@ -10,6 +10,8 @@ services:
     environment:
       CATALOG_BASE_URL: ${CATALOG_BASE_URL:?falta CATALOG_BASE_URL en .env}
       ORDERS_BASE_URL: ${ORDERS_BASE_URL:?falta ORDERS_BASE_URL en .env}
+      REPORT_BASE_URL: ${REPORT_BASE_URL:?falta REPORT_BASE_URL en .env}
+      AUDIT_BASE_URL: ${AUDIT_BASE_URL:?falta AUDIT_BASE_URL en .env}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
       ENFORCE_ROLES: ${ENFORCE_ROLES:-false}
       # Vista de usuarios: sin GRAPH_CLIENT_SECRET, GET /api/users responde 503 (el resto funciona igual).

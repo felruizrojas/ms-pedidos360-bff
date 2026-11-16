@@ -37,6 +37,7 @@ public class SecurityConfig {
     private static final String ADMIN = "ROLE_Admin";
     private static final String OPERADOR = "ROLE_Operador";
     private static final String CLIENTE = "ROLE_Cliente";
+    private static final String AUDITOR = "ROLE_Auditor";
 
     private final SecurityErrorHandlers errorHandlers;
 
@@ -72,6 +73,10 @@ public class SecurityConfig {
                         // fina (dueño del pedido, qué transición puede hacer cada rol) la hace orders.
                         auth.requestMatchers(HttpMethod.DELETE, "/api/orders/**").access(scopeY(OPERADOR));
                         auth.requestMatchers("/api/orders/**").access(scopeY(OPERADOR, CLIENTE));
+                        // Reportería (KPIs): solo Admin. Auditoría: Admin o Auditor (actor del PDF). report y audit
+                        // vuelven a exigirlo con @PreAuthorize, aunque aquí ENFORCE_ROLES=false.
+                        auth.requestMatchers("/api/report/**").access(scopeY(ADMIN));
+                        auth.requestMatchers("/api/audit/**").access(scopeY(ADMIN, AUDITOR));
                     }
                     auth.requestMatchers("/api/**").hasAuthority(SCOPE)
                             .anyRequest().authenticated();

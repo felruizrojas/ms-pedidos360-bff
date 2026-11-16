@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.MDC;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -18,6 +19,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import cl.duoc.pedidos360.bff.config.DownstreamProperties;
 import cl.duoc.pedidos360.bff.exception.AccesoRechazadoDownstreamException;
@@ -26,13 +29,22 @@ import cl.duoc.pedidos360.bff.exception.NoEncontradoDownstreamException;
 import cl.duoc.pedidos360.bff.exception.ServicioNoDisponibleException;
 import cl.duoc.pedidos360.bff.exception.ValidacionDownstreamException;
 import cl.duoc.pedidos360.bff.web.RequestIdFilter;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Crea los RestClient de todos los microservicios con lo común: timeouts, propagación de Authorization y
- * X-Request-Id, y traducción de errores. Un microservicio nuevo solo llama a {@link #create}.
+ * Crea los RestClient de todos los microservicios con lo común: timeouts, propagación de cabeceras y
+ * traducción de errores. Un microservicio nuevo solo llama a {@link #create}.
+ * <p>Cabeceras que reenvía a todos los downstream (en un solo lugar, el interceptor):
+ * <ul>
+ * <li>{@code Authorization} (el JWT del usuario) y {@code X-Request-Id}.</li>
+ * <li>{@code X-Forwarded-For}: el valor recibido + {@code ", "} + la IP remota del request entrante (o solo la
+ * IP remota si no venía). El microservicio toma el primer valor como IP del usuario.</li>
+ * <li>{@code X-Original-User-Agent}: el {@code User-Agent} que recibió el BFF (el del navegador); el
+ * {@code User-Agent} de la llamada downstream es el del cliente HTTP del BFF.</li>
+ * </ul>
  * <ul>
  * <li>Siempre: 400 → 400 con detalles · 401/403 → igual · otro código → 502 · caído/timeout → 503.</li>
  * <li>Solo los códigos que el client pide propagar ({@link #PROPAGAR_NEGOCIO}): 404 y 409 con el mensaje
@@ -45,6 +57,9 @@ import tools.jackson.databind.ObjectMapper;
 public class DownstreamRestClientFactory {
 
     /** 404, 409 y 503 de negocio que se reenvían al front tal cual (los usa orders). */
+    public static final String X_FORWARDED_FOR = "X-Forwarded-For";
+    public static final String X_ORIGINAL_USER_AGENT = "X-Original-User-Agent";
+
     public static final Set<HttpStatus> PROPAGAR_NEGOCIO =
             Set.of(HttpStatus.NOT_FOUND, HttpStatus.CONFLICT, HttpStatus.SERVICE_UNAVAILABLE);
 
@@ -97,6 +112,27 @@ public class DownstreamRestClientFactory {
         String requestId = MDC.get(RequestIdFilter.MDC_KEY);
         if (requestId != null) {
             request.getHeaders().set(RequestIdFilter.HEADER, requestId);
+        }
+        propagarOrigen(request);
+    }
+
+    /** Origen de la petición del usuario (ver Javadoc de la clase). Sin request entrante no agrega nada. */
+    private static void propagarOrigen(HttpRequest request) {
+        if (!(RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attrs)) {
+            return;
+        }
+        HttpServletRequest entrante = attrs.getRequest();
+        String recibido = entrante.getHeader(X_FORWARDED_FOR);
+        String remota = entrante.getRemoteAddr();
+        boolean hayRecibido = recibido != null && !recibido.isBlank();
+        String reenviado = hayRecibido && remota != null ? recibido.trim() + ", " + remota
+                : hayRecibido ? recibido.trim() : remota;
+        if (reenviado != null) {
+            request.getHeaders().set(X_FORWARDED_FOR, reenviado);
+        }
+        String userAgent = entrante.getHeader(HttpHeaders.USER_AGENT);
+        if (userAgent != null && !userAgent.isBlank()) {
+            request.getHeaders().set(X_ORIGINAL_USER_AGENT, userAgent);
         }
     }
 

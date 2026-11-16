@@ -25,6 +25,10 @@ pedidos360:
       base-url: ${CATALOG_BASE_URL:http://localhost:8081}
     orders:
       base-url: ${ORDERS_BASE_URL:http://localhost:8082}
+    report:
+      base-url: ${REPORT_BASE_URL:http://localhost:8084}
+    audit:
+      base-url: ${AUDIT_BASE_URL:http://localhost:8085}
   security:
     enforce-roles: ${ENFORCE_ROLES:false}
   cors:

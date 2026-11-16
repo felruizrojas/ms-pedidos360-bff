@@ -1,20 +1,33 @@
 # ms-pedidos360-bff
 
 Backend For Frontend de **Pedidos360** (DSY1107). Spring Boot 4.1.1 · Java 25 · puerto **8080**.
-Único backend que ve el frontend; orquesta los microservicios (catálogo y pedidos).
+Único backend que ve el frontend; orquesta los microservicios (catálogo, pedidos, reportería y auditoría).
 
 ## Arquitectura
 ```mermaid
 flowchart LR
     F["Angular<br/>(MSAL · Auth Code + PKCE)"] -- "Bearer JWT" --> G[API Gateway] --> B["BFF :8080<br/>firma, exp, issuer, audience, rol"]
-    B -- "/api/catalog/**<br/>Authorization + X-Request-Id" --> C["Catalog :8081<br/>(valida de nuevo)"]
-    B -- "/api/orders/**<br/>Authorization + X-Request-Id" --> O["Orders :8082<br/>(valida de nuevo + autorización fina)"]
+    B -- "/api/catalog/**<br/>Authorization + X-Request-Id<br/>+ X-Forwarded-For + X-Original-User-Agent" --> C["Catalog :8081<br/>(valida de nuevo)"]
+    B -- "/api/orders/**<br/>Authorization + X-Request-Id<br/>+ X-Forwarded-For + X-Original-User-Agent" --> O["Orders :8082<br/>(valida de nuevo + autorización fina)"]
     O -- "precios y stock" --> C
     C --> PC[(PostgreSQL catalog)]
     O --> PO[(PostgreSQL orders)]
     O -- comandos --> R[[RabbitMQ]] --> N[notify]
+    B -- "/api/report/** (GET)<br/>mismas cabeceras" --> RP["Report :8084<br/>(KPIs, rol Admin)"]
+    B -- "/api/audit/** (GET)<br/>mismas cabeceras" --> AU["Audit :8085<br/>(timeline, Admin/Auditor)"]
+    O -- "orders.events / audit.timeline" --> K[(Kafka)]
+    K --> RP
+    K --> AU
 ```
 Capas: `controller` → `service` → `client` (RestClient) · `config` (seguridad, JWT, CORS) · `exception` · `web` (X-Request-Id).
+
+**Cabeceras hacia los microservicios** (todas en un solo lugar: el interceptor de `DownstreamRestClientFactory`, que usan todos los clientes):
+| Cabecera | Valor | Para qué |
+|---|---|---|
+| `Authorization` | El JWT del usuario | Cada microservicio lo valida de nuevo |
+| `X-Request-Id` | El de la petición (o uno generado) | Trazabilidad en logs y como `correlationId` en RabbitMQ/Kafka |
+| `X-Forwarded-For` | El valor recibido + `, ` + IP remota del request (solo la IP remota si no venía) | El microservicio toma el **primer** valor como IP del usuario (`audit.timeline` → `where.ip`) |
+| `X-Original-User-Agent` | El `User-Agent` que recibió el BFF (el navegador) | `audit.timeline` → `where.userAgent` (el `User-Agent` de la llamada es el del cliente HTTP del BFF) |
 
 ## Qué cubre de la evaluación
 | Requisito | Implementación |
@@ -24,6 +37,7 @@ Capas: `controller` → `service` → `client` (RestClient) · `config` (segurid
 | Autorización por rol | claim `roles` → `ROLE_Admin/Operador/Cliente`; con `ENFORCE_ROLES=true`: escribir en catálogo exige Admin/Operador, pedidos exige cualquiera de los 3 roles, borrar un pedido solo Admin (ver [Roles](#roles-enforce_rolestrue)) |
 | Códigos de error adecuados | 401 / 403 JSON `{timestamp,status,error,mensaje,path}`; 400, 404, 409, 502, 503, 500 sin stacktrace |
 | Integración con pedidos | `OrdersController` → `OrdersService` → `OrdersClient`: reenvía los 7 endpoints de ms-pedidos360-orders con sus códigos |
+| Integración con reportería y auditoría | `ReportController`/`ReportService`/`ReportClient` (5 GET de ms-pedidos360-report) y `AuditController`/`AuditService`/`AuditClient` (8 GET de ms-pedidos360-audit). Query params tal cual (incluidos los repetidos), mismas cabeceras y la respuesta como JSON genérico (sin duplicar DTOs) |
 
 ## Endpoints
 | Método | Ruta | Destino |
@@ -42,7 +56,22 @@ Capas: `controller` → `service` → `client` (RestClient) · `config` (segurid
 | PUT | `/api/orders/{id}/status` | pedidos (`{"status":"ACEPTADO","comentario":"..."}`) |
 | GET | `/api/orders/{id}/history` | pedidos |
 | DELETE | `/api/orders/{id}` | pedidos (204, borrado lógico; solo Admin) |
+| GET | `/api/report/kpis?range=` | reportería (Admin) |
+| GET | `/api/report/sales-by-hour?range=` | reportería |
+| GET | `/api/report/lead-time?range=` | reportería |
+| GET | `/api/report/top-products?range=&limit=&orden=` | reportería |
+| GET | `/api/report/active-states` | reportería |
+| GET | `/api/audit/events?usuario=&accion=&accion=&desde=&hasta=&...` | auditoría (Admin o Auditor) |
+| GET | `/api/audit/events/{eventId}` | auditoría |
+| GET | `/api/audit/orders/{pedidoId}/timeline` | auditoría |
+| GET | `/api/audit/actors/{actorId}/timeline` | auditoría |
+| GET | `/api/audit/event-types` | auditoría |
+| GET | `/api/audit/summary?desde=&hasta=` | auditoría |
+| GET | `/api/audit/dead-letters?topic=&desde=&hasta=` | auditoría |
+| GET | `/api/audit/dead-letters/{id}` | auditoría |
 | GET | `/actuator/health`, `/swagger-ui.html`, `/v3/api-docs` | público |
+
+Report y audit son de **solo lectura**: el BFF solo expone sus GET (cualquier otro método no tiene ruta). Los parámetros y la forma de cada respuesta están en el README de cada microservicio; el BFF los reenvía sin transformarlos.
 
 Los JSON de request/response de pedidos son los del contrato de orders (README de ms-pedidos360-orders, "Contrato para otros servicios"). El BFF solo valida la forma básica (`direccionEntrega` e `items` obligatorios, `productoId`/`cantidad` presentes, `status` presente); rangos, estados válidos y existencia de productos los valida orders y el BFF reenvía su 400.
 
@@ -51,13 +80,13 @@ Los JSON de request/response de pedidos son los del contrato de orders (README d
 |---|---|---|
 | 400 | 400 con `detalles` | 400 con `detalles` |
 | 401 / 403 | igual | igual |
-| 404 | 404 (mensaje del BFF: "Producto no encontrado con id N") | 404 con el `mensaje` de orders |
+| 404 | 404 (mensaje del BFF: "Producto no encontrado con id N") | 404 con el `mensaje` de orders (report y audit: igual) |
 | 409 (transición inválida, sin stock, conflicto de versión) | 502 | **409** con `mensaje` y `detalles` de orders tal cual (números incluidos) |
 | 503 (p. ej. catalog caído detrás de orders) | 502 | **503** con el `mensaje` de orders |
 | Otro 5xx o respuesta ilegible | 502 | 502 |
 | Caído / timeout | 503 | 503 |
 
-Los 404/409/503 se propagan solo en los clients que lo piden (`DownstreamRestClientFactory.create(servicio, url, PROPAGAR_NEGOCIO)`), así el comportamiento de catálogo no cambia.
+Los 404/409/503 se propagan solo en los clients que lo piden (`DownstreamRestClientFactory.create(servicio, url, PROPAGAR_NEGOCIO)`: orders, report y audit), así el comportamiento de catálogo no cambia. Report y audit traducen igual que pedidos (un `range` inválido llega como 400 con sus `detalles`; audit caído → 503 "Servicio de auditoría no disponible").
 
 ```json
 {"timestamp":"2026-10-20T15:04:05.123Z","status":409,"error":"Conflict",
@@ -72,8 +101,10 @@ Los 404/409/503 se propagan solo en los clients que lo piden (`DownstreamRestCli
 | POST/PUT/DELETE `/api/catalog/**` | Admin u Operador |
 | DELETE `/api/orders/**` | Admin |
 | Resto de `/api/orders/**` | Admin, Operador o Cliente |
+| `/api/report/**` | Admin |
+| `/api/audit/**` | Admin o Auditor |
 
-La autorización fina de pedidos (un Cliente solo ve y edita los suyos, solo puede cancelar en CREADO, qué transición hace cada rol) la aplica orders; el BFF no la duplica. Ojo: orders permite **crear y editar** solo a Cliente y Operador, así que un Admin pasa el BFF y recibe **403 de orders**. Con `ENFORCE_ROLES=false`, `/api/**` exige solo el scope.
+La autorización fina de pedidos (un Cliente solo ve y edita los suyos, solo puede cancelar en CREADO, qué transición hace cada rol) la aplica orders; el BFF no la duplica. Ojo: orders permite **crear y editar** solo a Cliente y Operador, así que un Admin pasa el BFF y recibe **403 de orders**. Con `ENFORCE_ROLES=false`, `/api/**` exige solo el scope (report y audit igual vuelven a exigir su rol con `@PreAuthorize`).
 
 ## Variables de entorno
 | Variable | Default |
@@ -82,6 +113,8 @@ La autorización fina de pedidos (un Cliente solo ve y edita los suyos, solo pue
 | `ENTRA_API_CLIENT_ID` (audience) | `d80d5009-1b8a-49b2-a3da-08a8bbd00936` |
 | `CATALOG_BASE_URL` | `http://localhost:8081` |
 | `ORDERS_BASE_URL` | `http://localhost:8082` |
+| `REPORT_BASE_URL` | `http://localhost:8084` |
+| `AUDIT_BASE_URL` | `http://localhost:8085` |
 | `SERVICES_CONNECT_TIMEOUT` / `SERVICES_READ_TIMEOUT` | `2s` / `5s` |
 | `ENFORCE_ROLES` | `false` |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:4200` |
